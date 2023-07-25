@@ -61,7 +61,10 @@ app.get("/posts/:topic", function(req, res){
   posts.forEach(function(post){
     const posttitle = post.title;
     if(lodash.lowerCase(posttitle) === lodash.lowerCase(requestedtitle)){
-      console.log("Match Found");
+      res.render("post",{
+        title: post.title,
+        content: post.content
+      });
     }
   });
 })
