@@ -4,6 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const lodash = require("lodash");
+const mongoose = require("mongoose");
 // const title = require(__dirname+"/compose.ejs")
 
 const homeStartingContent =
@@ -19,14 +20,35 @@ app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const posts = [];
+mongoose.connect("mongodb+srv://lazimrayan:Lazimrayan99@cluster1.gx9pn1g.mongodb.net/blogDB?retryWrites=true&w=majority", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const postSchema = new mongoose.Schema({
+  postTitle: String,
+  postContent: String
+})
+
+const Post = mongoose.model("Post",postSchema);
+
+const home = new Post({
+  postTitle: "My First Blog",
+  postContent: homeStartingContent
+});
+
+const posts = [home];
 
 app.use(express.static("public"));
 
 app.get("/", function (req, res) {
-  res.render("home", {
-    HomeContent: homeStartingContent,
-    postarray : posts
+  Post.find().then(function (foundPosts) {
+    res.render("home", {
+      postarray: foundPosts,
+    });
+  }).catch(function (error) {
+    console.log(error);
+    res.redirect("/"); // Handle error gracefully by redirecting or rendering an error page
   });
 });
 
@@ -46,18 +68,23 @@ app.get("/compose", function(req, res){
   res.render("compose");
 })
 
-app.post("/compose", function(req, res){
-  const post = {
-    title: req.body.TitleData,
-    content: req.body.PostData
-  }
-  posts.push(post);
-  res.redirect("/");
-})
+app.post("/compose", function (req, res) {
+  const post = new Post({
+    postTitle: req.body.Title,
+    postContent: req.body.PostData
+  });
 
+  post.save(function (err) {
+    if (!err) {
+      res.redirect("/");
+    } else {
+      console.log(err);
+      res.redirect("/compose"); // Handle error by redirecting back to the compose page or showing an error message
+    }
+  });
+});
 app.get("/posts/:topic", function(req, res){
   const requestedtitle = req.params.topic;
-
   posts.forEach(function(post){
     const posttitle = post.title;
     if(lodash.lowerCase(posttitle) === lodash.lowerCase(requestedtitle)){
