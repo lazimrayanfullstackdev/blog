@@ -37,7 +37,7 @@ const home = new Post({
   postContent: homeStartingContent
 });
 
-const posts = [home];
+const posts = [];
 
 app.use(express.static("public"));
 
@@ -68,33 +68,33 @@ app.get("/compose", function(req, res){
   res.render("compose");
 })
 
-app.post("/compose", function (req, res) {
+app.post("/compose",async function (req, res) {
   const post = new Post({
-    postTitle: req.body.Title,
+    postTitle: req.body.TitleData,
     postContent: req.body.PostData
   });
-
-  post.save(function (err) {
-    if (!err) {
-      res.redirect("/");
-    } else {
-      console.log(err);
-      res.redirect("/compose"); // Handle error by redirecting back to the compose page or showing an error message
-    }
-  });
+  await post.save();
+  res.redirect("/");
 });
-app.get("/posts/:topic", function(req, res){
+app.get("/posts/:topic", function (req, res) {
   const requestedtitle = req.params.topic;
-  posts.forEach(function(post){
-    const posttitle = post.title;
-    if(lodash.lowerCase(posttitle) === lodash.lowerCase(requestedtitle)){
-      res.render("post",{
-        title: post.title,
-        content: post.content
-      });
-    }
-  });
-})
+  Post.findOne({ postTitle: requestedtitle })
+    .then(function (post) {
+      if (post) {
+        res.render("post", {
+          title: post.postTitle,
+          content: post.postContent
+        });
+      } else {
+        console.log("Post not Found");
+        res.redirect("/"); // Redirect to the home page if the post is not found
+      }
+    })
+    .catch(function (error) {
+      console.log(error);
+      res.redirect("/"); // Redirect to the home page if there's an error
+    });
+});
 
 app.listen(3000, function () {
   console.log("Server started on port 3000");
